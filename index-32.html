@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+<meta name="color-scheme" content="light dark">
+<script>
+  /* Se aplica antes de pintar nada para que al abrir no dé un fogonazo. */
+  try{ if(localStorage.getItem("tema_app") === "claro") document.documentElement.classList.add("claro"); }catch(e){}
+</script>
+<title>Peticiones Fábrica 1</title>
+<style>
+  :root{
+    color-scheme:dark;
+    --bg:#14171c;
+    --bg-2:#171b21;
+    --bg-rgb:20,23,28;
+    --panel:#1c2129;
+    --panel-2:#232a34;
+    --line:#323a46;
+    --amber:#e8a23d;
+    --amber-dim:#7a5a26;
+    --on-amber:#141414;
+    --text:#eef1f5;
+    --text-dim:#98a3b3;
+    --green:#4caf7d;
+    --red:#ff5a5a;
+    --radius:10px;
+  }
+  html.claro{
+    color-scheme:light;
+    --bg:#f2f5f9;
+    --bg-2:#ffffff;
+    --bg-rgb:242,245,249;
+    --panel:#ffffff;
+    --panel-2:#e9edf3;
+    --line:#c4cdd9;
+    --amber:#9a4300;
+    --amber-dim:#e3b574;
+    --on-amber:#ffffff;
+    --text:#000000;
+    --text-dim:#242a33;
+    --green:#1b7a4a;
+    --red:#c01c1c;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  body{padding-bottom:40px;}
+
+  header{
+    position:sticky;top:0;z-index:20;
+    background:linear-gradient(180deg,var(--bg-2),var(--bg) 90%);
+    border-bottom:2px solid var(--amber-dim);
+    padding:14px 16px 12px;padding-right:64px;
+  }
+  header h1{margin:0 0 2px;font-size:17px;letter-spacing:.3px;font-weight:700;}
+  header .sub{font-size:12px;color:var(--text-dim);}
+  .tema-btn{
+    position:absolute;top:12px;right:14px;z-index:25;
+    background:var(--panel-2);border:1px solid var(--line);border-radius:9px;
+    color:var(--text);font-size:15px;line-height:1;padding:7px 10px;cursor:pointer;
+  }
+
+  .buscador{padding:14px 12px 0;}
+  .mic-btn{
+    width:100%;border:2px solid var(--amber);background:transparent;color:var(--amber);
+    font-size:16px;font-weight:800;letter-spacing:.3px;border-radius:12px;
+    padding:18px 8px;cursor:pointer;
+  }
+  .mic-btn.listening{
+    background:var(--red);color:#fff;border-color:transparent;
+    animation:pulso 1s infinite;
+  }
+  @keyframes pulso{0%,100%{opacity:1}50%{opacity:.55}}
+
+  .teclado{display:flex;gap:8px;margin-top:10px;}
+  .teclado input{
+    flex:1;min-width:0;background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;color:var(--text);padding:13px 12px;font-size:17px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:1px;
+    text-align:center;font-weight:700;
+  }
+  .teclado input:focus{outline:none;border-color:var(--amber);}
+  .teclado button{
+    flex:none;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;
+    color:var(--text);font-size:13px;font-weight:700;padding:0 14px;cursor:pointer;
+  }
+  .pista{padding:8px 14px 0;font-size:11.5px;color:var(--text-dim);line-height:1.4;}
+
+  .resultados{padding:12px 12px 0;}
+  .tarjeta{
+    background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--amber);
+    border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;
+  }
+  .tarjeta .mat{
+    font-size:19px;font-weight:800;letter-spacing:.6px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  .tarjeta .ciclo-lbl{font-size:10.5px;color:var(--text-dim);letter-spacing:.6px;margin-top:8px;}
+  .tarjeta .ciclo{
+    font-size:38px;font-weight:800;color:var(--amber);line-height:1.05;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:2px;
+  }
+  .tarjeta .extra{font-size:11.5px;color:var(--text-dim);margin-top:8px;line-height:1.5;}
+  .tarjeta .copiar{
+    margin-top:10px;background:var(--amber);color:var(--on-amber);border:none;
+    border-radius:8px;padding:9px 14px;font-size:12.5px;font-weight:800;cursor:pointer;
+  }
+  .vacio{
+    color:var(--text-dim);font-size:13px;text-align:center;padding:26px 16px;line-height:1.5;
+  }
+
+  .todo-btn{
+    display:block;width:calc(100% - 24px);margin:4px 12px 0;
+    background:transparent;border:1px dashed var(--amber-dim);color:var(--amber);
+    border-radius:9px;padding:10px;font-size:12.5px;font-weight:700;cursor:pointer;
+  }
+  table{width:100%;border-collapse:collapse;margin-top:10px;}
+  th{
+    text-align:left;font-size:10.5px;color:var(--text-dim);letter-spacing:.4px;
+    padding:6px 10px;border-bottom:1px solid var(--line);text-transform:uppercase;
+  }
+  td{
+    padding:8px 10px;border-bottom:1px solid var(--line);font-size:13px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  td.ci{color:var(--amber);font-weight:800;text-align:right;}
+  td.ru{color:var(--text-dim);font-size:11px;font-family:inherit;}
+  tr.fila:active{background:var(--panel-2);}
+
+  .toast{
+    position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);
+    background:var(--panel-2);border:1px solid var(--amber-dim);color:var(--text);
+    padding:10px 18px;border-radius:20px;font-size:13px;font-weight:700;
+    opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;z-index:40;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<header>
+  <button class="tema-btn" id="temaBtn" aria-label="Cambiar fondo">&#9728;&#65039;</button>
+  <h1>Peticiones Fábrica 1</h1>
+  <div class="sub">Di los últimos dígitos del material y te doy su ciclo de control · <b>v01-11</b></div>
+</header>
+
+<div class="buscador">
+  <button class="mic-btn" id="micBtn">&#127908; Decir el material</button>
+  <div class="teclado">
+    <input type="text" id="txt" inputmode="text" autocomplete="off" placeholder="o escríbelo: 851">
+    <button id="limpiar">Borrar</button>
+  </div>
+</div>
+<div class="pista">Los tres últimos dígitos, con su letra si la tiene: <b>851</b>, <b>091A</b>, <b>301</b>. Si coinciden varias, salen todas.</div>
+
+<div class="resultados" id="resultados"></div>
+
+<button class="todo-btn" id="todoBtn">Ver la lista completa</button>
+<div id="listaTodo" style="display:none;padding:0 12px;"></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ---------- DATOS ----------
+// Sacados de las hojas de RUTA 1 y RUTA 6. Lo que de verdad importa es
+// "mat" (material) y "ciclo"; el resto es contexto por si ayuda a decidir
+// cuando varias referencias acaban en los mismos dígitos.
+const DATOS = [
+  // ----- RUTA 1 -----
+  { mat:"2F0801251",  ruta:"1", ubic:"EBF1U1G001", col:"B35", cont:"BEIPACK",    cap:"36",    ciclo:"62709" },
+  { mat:"2F0801252",  ruta:"1", ubic:"EBF1U1G001", col:"B35", cont:"539474",     cap:"36",    ciclo:"62710" },
+  { mat:"2F0802851",  ruta:"1", ubic:"EAA1BHI006", col:"D36", cont:"111940/820", cap:"220",   ciclo:"62704" },
+  { mat:"2F0802852",  ruta:"1", ubic:"EAA1BHI003", col:"D36", cont:"111940/820", cap:"220",   ciclo:"62701" },
+  { mat:"2F0803091A", ruta:"1", ubic:"P1A1BVT004", col:"A36", cont:"539473",     cap:"12",    ciclo:"62684" },
+  { mat:"2F0803092A", ruta:"1", ubic:"P1A1BVT003", col:"A36", cont:"539472",     cap:"12",    ciclo:"62683" },
+  { mat:"2F0803141",  ruta:"1", ubic:"EBF1BVT005", col:"A36", cont:"539485",     cap:"33",    ciclo:"62685" },
+  { mat:"2F0803205",  ruta:"1", ubic:"P1A1BV2001", col:"A38", cont:"540134",     cap:"36",    ciclo:"62686" },
+  { mat:"2F0803296",  ruta:"1", ubic:"EBF1BVV002", col:"B38", cont:"539477",     cap:"36",    ciclo:"62689" },
+  { mat:"2F0803301",  ruta:"1", ubic:"P1A1BV2002", col:"A38", cont:"539476",     cap:"22",    ciclo:"62687" },
+  { mat:"2F0803501",  ruta:"1", ubic:"P1B1BHT001", col:"C38", cont:"BEIPACK",    cap:"9",     ciclo:"62690" },
+  { mat:"2F0803502",  ruta:"1", ubic:"P1B1BHT001", col:"C38", cont:"539478",     cap:"9",     ciclo:"62691" },
+  { mat:"2F0803531",  ruta:"1", ubic:"P1C1BHI001", col:"D37", cont:"539479",     cap:"24",    ciclo:"62699" },
+  { mat:"2F0804313",  ruta:"1", ubic:"EAA1BHV001", col:"C35", cont:"111940",     cap:"425",   ciclo:"62707" },
+  { mat:"2F0804314",  ruta:"1", ubic:"EAA1BHV002", col:"D35", cont:"111940",     cap:"425",   ciclo:"62708" },
+  { mat:"2F0804429",  ruta:"1", ubic:"EAA1BVT002", col:"A35", cont:"114903",     cap:"1.800", ciclo:"62682" },
+  { mat:"2F0804430",  ruta:"1", ubic:"EAA1BVT001", col:"A35", cont:"114903",     cap:"1.800", ciclo:"62681" },
+  { mat:"2F0804451",  ruta:"1", ubic:"EBF1BVV001", col:"B38", cont:"539482",     cap:"72",    ciclo:"62688" },
+  { mat:"2F0804789",  ruta:"1", ubic:"EAA1BHI005", col:"D36", cont:"111940/820", cap:"40",    ciclo:"62703" },
+  { mat:"2F0804790",  ruta:"1", ubic:"EAA1BHI004", col:"D36", cont:"111940/820", cap:"40",    ciclo:"62702" },
+  { mat:"2F0813113",  ruta:"1", ubic:"P1D1BHI008", col:"D36", cont:"540258",     cap:"32",    ciclo:"62706" },
+  { mat:"2F0813114",  ruta:"1", ubic:"EBF1BHI007", col:"D36", cont:"539481",     cap:"26",    ciclo:"62705" },
+  { mat:"2F0813146",  ruta:"1", ubic:"EBA1BHI002", col:"D36", cont:"539480",     cap:"45",    ciclo:"62700" },
+  { mat:"2F0813759",  ruta:"1", ubic:"EBF1BHT002", col:"D37", cont:"539486",     cap:"70",    ciclo:"62692" },
+  // ----- RUTA 6 -----
+  { mat:"2F0803155",  ruta:"6", ubic:"P1F1US3001", col:"G35", cont:"540132", cap:"42",  ciclo:"62989" },
+  { mat:"2F0803177",  ruta:"6", ubic:"RZ11US3003", col:"G35", cont:"114903", cap:"480", ciclo:"62991" },
+  { mat:"2F0803178",  ruta:"6", ubic:"RZ11US3004", col:"G35", cont:"114903", cap:"480", ciclo:"62992" },
+  { mat:"2F0803489",  ruta:"6", ubic:"RZ11US3007", col:"F35", cont:"114903", cap:"350", ciclo:"62994" },
+  { mat:"2F0803490",  ruta:"6", ubic:"RZ11US3008", col:"F35", cont:"114903", cap:"350", ciclo:"62995" },
+  { mat:"2F0805115A", ruta:"6", ubic:"P1E1US2006", col:"E35", cont:"539483", cap:"60",  ciclo:"63016" },
+  { mat:"2F0805116A", ruta:"6", ubic:"P1E1US2007", col:"E35", cont:"539484", cap:"32",  ciclo:"63017" },
+  { mat:"2F0805265",  ruta:"6", ubic:"EBF1US3006", col:"G35", cont:"540133", cap:"38",  ciclo:"62996" },
+  { mat:"2F0805277",  ruta:"6", ubic:"RZ11US2001", col:"F35", cont:"114903", cap:"650", ciclo:"63008" },
+  { mat:"2F0805397",  ruta:"6", ubic:"RZ11US2005", col:"F35", cont:"111902", cap:"312", ciclo:"63012" },
+  { mat:"2F0805398",  ruta:"6", ubic:"RZ11US2004", col:"F35", cont:"111902", cap:"312", ciclo:"63011" },
+  { mat:"2F0805811",  ruta:"6", ubic:"RZ11US3002", col:"G35", cont:"114903", cap:"350", ciclo:"62990" },
+  { mat:"2F0805812",  ruta:"6", ubic:"RZ11US3005", col:"G35", cont:"114903", cap:"350", ciclo:"62993" },
+  { mat:"2F0806419",  ruta:"6", ubic:"RZ11US2003", col:"F35", cont:"114903", cap:"900", ciclo:"63010" },
+  { mat:"2F0806420",  ruta:"6", ubic:"RZ11US2002", col:"F35", cont:"114903", cap:"900", ciclo:"63009" },
+  { mat:"2F0809851",  ruta:"6", ubic:"P3G1ABS006", col:"F37", cont:"540785", cap:"12",  ciclo:"62943" },
+  { mat:"2F0809852",  ruta:"6", ubic:"P3G1ABS003", col:"F37", cont:"540786", cap:"12",  ciclo:"62944" },
+  { mat:"2G7809851",  ruta:"6", ubic:"EBD1ABS005", col:"G36", cont:"",       cap:"0",   ciclo:"54821" },
+  { mat:"2G7809852",  ruta:"6", ubic:"EBD1ABS004", col:"G36", cont:"",       cap:"0",   ciclo:"54822" },
+  { mat:"2G7813301A", ruta:"6", ubic:"EBD1ABS002", col:"F37", cont:"533178", cap:"28",  ciclo:"52777" },
+  { mat:"3FA802483A", ruta:"6", ubic:"EBF1UST001", col:"E35", cont:"540789", cap:"30",  ciclo:"63018" },
+  { mat:"3FA813301",  ruta:"6", ubic:"EBF1ABS001", col:"E37", cont:"540787", cap:"18",  ciclo:"59183" }
+];
+
+// ---------- AVISOS ----------
+function showToast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(showToast._h);
+  showToast._h = setTimeout(()=> t.classList.remove("show"), 2200);
+}
+
+// ---------- FONDO CLARO U OSCURO ----------
+const TEMA_KEY = "tema_app";
+let temaActual = "oscuro";
+try{ temaActual = localStorage.getItem(TEMA_KEY) || "oscuro"; }catch(e){}
+function aplicarTema(){
+  const claro = temaActual === "claro";
+  document.documentElement.classList.toggle("claro", claro);
+  const b = document.getElementById("temaBtn");
+  b.textContent = claro ? "\u{1F319}" : "☀️";
+  b.title = claro ? "Cambiar a fondo oscuro" : "Cambiar a fondo claro";
+}
+aplicarTema();
+document.getElementById("temaBtn").addEventListener("click", ()=>{
+  temaActual = (temaActual === "claro") ? "oscuro" : "claro";
+  try{ localStorage.setItem(TEMA_KEY, temaActual); }catch(e){}
+  aplicarTema();
+});
+
+// ---------- NÚMEROS DICHOS EN VOZ ----------
+// Mismo reconocimiento que en Almacén Schnellecke: entiende tanto "ocho cinco
+// uno" como "ochocientos cincuenta y uno", y las letras sueltas del final.
+const WORD_NUM = {
+  "cero":0,"uno":1,"una":1,"dos":2,"tres":3,"cuatro":4,"cinco":5,"seis":6,"siete":7,"ocho":8,"nueve":9,
+  "diez":10,"once":11,"doce":12,"trece":13,"catorce":14,"quince":15,
+  "dieciseis":16,"diecisiete":17,"dieciocho":18,"diecinueve":19,
+  "veinte":20,"veintiuno":21,"veintidos":22,"veintitres":23,"veinticuatro":24,"veinticinco":25,
+  "veintiseis":26,"veintisiete":27,"veintiocho":28,"veintinueve":29,
+  "treinta":30,"cuarenta":40,"cincuenta":50,"sesenta":60,"setenta":70,"ochenta":80,"noventa":90,
+  "cien":100,"ciento":100,"doscientos":200,"trescientos":300,"cuatrocientos":400,"quinientos":500,
+  "seiscientos":600,"setecientos":700,"ochocientos":800,"novecientos":900
+};
+function parseSpokenNumber(transcript){
+  const tokens = transcript.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"")
+    .replace(/[^a-z0-9\s]/g," ").split(/\s+/).filter(Boolean);
+  const groups = [];
+  let current = null, pendingY = false;
+  tokens.forEach(tok=>{
+    if(tok === "y"){ pendingY = true; return; }
+    let val = null;
+    if(/^\d+$/.test(tok)) val = parseInt(tok,10);
+    else if(tok in WORD_NUM) val = WORD_NUM[tok];
+    if(val !== null){
+      const canAdd = current !== null && (pendingY || (current>=100 && current%100===0));
+      if(canAdd) current += val;
+      else{ if(current!==null) groups.push(String(current)); current = val; }
+      pendingY = false;
+      return;
+    }
+    if(/^[a-e]$/.test(tok)){
+      if(current!==null){ groups.push(String(current)); current=null; }
+      groups.push(tok.toUpperCase());
+      pendingY = false;
+      return;
+    }
+    if(current!==null){ groups.push(String(current)); current=null; }
+    pendingY = false;
+  });
+  if(current!==null) groups.push(String(current));
+  return groups.join("");
+}
+function limpiaBusqueda(s){ return String(s||"").toUpperCase().replace(/[^A-Z0-9]/g,""); }
+
+// ---------- BÚSQUEDA ----------
+// Primero busca los materiales que acaban exactamente por lo que has dicho.
+// Si no hay ninguno, prueba ignorando la letra final, por si has dicho solo
+// los números de una referencia que termina en letra.
+function soloDigitos(s){ return String(s).replace(/[^0-9]/g, ""); }
+function buscar(q){
+  const Q = limpiaBusqueda(q);
+  if(Q.length < 2) return [];
+  // 1) los que acaban exactamente por lo dicho
+  const salen = DATOS.filter(d=> d.mat.endsWith(Q));
+  // 2) y además los que coinciden en dígitos aunque acaben en letra:
+  //    diciendo "301" tiene que salir también la 2G7813301A
+  const qd = soloDigitos(Q);
+  if(qd.length >= 3){
+    DATOS.forEach(d=>{
+      if(salen.indexOf(d) === -1 && soloDigitos(d.mat).endsWith(qd)) salen.push(d);
+    });
+  }
+  return salen;
+}
+
+const resultadosEl = document.getElementById("resultados");
+function pintar(lista, consulta){
+  if(!consulta){
+    resultadosEl.innerHTML = "";
+    return;
+  }
+  if(!lista.length){
+    resultadosEl.innerHTML = `<div class="vacio">No hay ningún material que acabe en <b>${consulta}</b>.<br>Prueba con otros dígitos o mira la lista completa.</div>`;
+    return;
+  }
+  resultadosEl.innerHTML = lista.map(d=>`
+    <div class="tarjeta">
+      <div class="mat">${d.mat}</div>
+      <div class="ciclo-lbl">CICLO DE CONTROL</div>
+      <div class="ciclo">${d.ciclo}</div>
+      <div class="extra">Ruta ${d.ruta} · ${d.ubic} · columna ${d.col}${d.cont ? " · contenedor " + d.cont : ""} · capacidad ${d.cap}</div>
+      <button class="copiar" data-ciclo="${d.ciclo}">Copiar ${d.ciclo}</button>
+    </div>
+  `).join("");
+  if(lista.length > 1) showToast(lista.length + " materiales acaban igual");
+}
+
+resultadosEl.addEventListener("click", e=>{
+  const b = e.target.closest(".copiar");
+  if(!b) return;
+  const v = b.dataset.ciclo;
+  try{
+    navigator.clipboard.writeText(v);
+    showToast("Copiado " + v);
+  }catch(err){ showToast("No se ha podido copiar · apúntalo a mano"); }
+});
+
+const txtEl = document.getElementById("txt");
+function lanzar(q){
+  const Q = limpiaBusqueda(q);
+  txtEl.value = Q;
+  pintar(buscar(Q), Q);
+}
+txtEl.addEventListener("input", ()=> pintar(buscar(txtEl.value), limpiaBusqueda(txtEl.value)));
+document.getElementById("limpiar").addEventListener("click", ()=>{
+  txtEl.value = "";
+  pintar([], "");
+  txtEl.focus();
+});
+
+// ---------- MICRÓFONO ----------
+const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+const micBtn = document.getElementById("micBtn");
+let rec = null;
+if(Rec){
+  rec = new Rec();
+  rec.lang = "es-ES";
+  rec.continuous = false;
+  rec.interimResults = false;
+  rec.maxAlternatives = 4;
+  rec.addEventListener("start", ()=>{
+    micBtn.classList.add("listening");
+    showToast("Escuchando… di los últimos dígitos");
+  });
+  rec.addEventListener("end", ()=> micBtn.classList.remove("listening"));
+  rec.addEventListener("error", ()=>{
+    micBtn.classList.remove("listening");
+    showToast("El micrófono no va aquí · escríbelo abajo");
+  });
+  rec.addEventListener("result", e=>{
+    const alts = [];
+    for(let i = 0; i < e.results[0].length; i++) alts.push(e.results[0][i].transcript);
+    // nos quedamos con la primera alternativa que encuentre algo
+    for(const a of alts){
+      const q = limpiaBusqueda(parseSpokenNumber(a));
+      if(q && buscar(q).length){ lanzar(q); return; }
+    }
+    const q = limpiaBusqueda(parseSpokenNumber(alts[0]));
+    lanzar(q || alts[0]);
+  });
+}
+micBtn.addEventListener("click", ()=>{
+  if(!rec){ showToast("Este navegador no deja dictar · escríbelo abajo"); txtEl.focus(); return; }
+  try{ rec.abort(); }catch(e){}
+  try{ rec.start(); }catch(e){}
+});
+
+// ---------- LISTA COMPLETA ----------
+const todoBtn = document.getElementById("todoBtn");
+const listaEl = document.getElementById("listaTodo");
+let abierta = false;
+todoBtn.addEventListener("click", ()=>{
+  abierta = !abierta;
+  todoBtn.textContent = abierta ? "Ocultar la lista" : "Ver la lista completa";
+  listaEl.style.display = abierta ? "block" : "none";
+  if(abierta && !listaEl.innerHTML){
+    const filas = DATOS.slice().sort((a,b)=> a.mat.localeCompare(b.mat)).map(d=>`
+      <tr class="fila" data-q="${d.mat}">
+        <td>${d.mat}</td><td class="ru">Ruta ${d.ruta}</td><td class="ci">${d.ciclo}</td>
+      </tr>`).join("");
+    listaEl.innerHTML = `<table>
+      <thead><tr><th>Material</th><th></th><th style="text-align:right">Ciclo</th></tr></thead>
+      <tbody>${filas}</tbody></table>`;
+  }
+});
+listaEl.addEventListener("click", e=>{
+  const tr = e.target.closest(".fila");
+  if(!tr) return;
+  lanzar(tr.dataset.q);
+  window.scrollTo({ top:0, behavior:"smooth" });
+});
+</script>
+</body>
+</html>
